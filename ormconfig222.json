@@ -1,10 +1,10 @@
 {
-   "type": "mysql",
-   "host": "localhost",
-   "port": 3306,
-   "username": "root",
-   "password": "",
-   "database": "cedindb",
+   "type": "postgres",
+   "host": "ec2-34-225-162-157.compute-1.amazonaws.com",
+   "port": 5432,
+   "username": "dgujgthvadknyf",
+   "password": "8519af093ed94e1dc94c2285bebaa807e260381710ffd5153c0d1ea186007df2",
+   "database": "d13q4h9qsb6v4d",
    "synchronize": true,
    "logging": false,
    "entities": [
