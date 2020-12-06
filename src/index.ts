@@ -4,6 +4,7 @@ import * as express from 'express';
 import * as bodyParser from 'body-parser';
 import * as helmet from 'helmet';
 import * as path from 'path';
+import { setEmitFlags } from 'typescript';
 
 //Connects to the Database -> then starts the express
 createConnection()
@@ -29,29 +30,34 @@ createConnection()
             serviceUrl: 'https://api.us-south.assistant.watson.cloud.ibm.com/instances/22e3b63c-b66e-456c-b0bf-f9ed17e0fca2',
         });
 
+        /** conexion web socket */
+        let io = require('socket.io')(http, {
+            cors: {
+                origin: "*",
+                methods: ['GET', 'POST'],
+                credentials: true
+            }
+        });
         let session_id;
-        let session  =  assistant.createSession({
-            assistantId: 'a4f92871-728e-4422-bcb6-2db9f79b06e3'
-          })
-            .then(res => {
-                session_id = res.result.session_id;
-            })
-            .catch(err => {
-              console.log(err);
-            });
-
-      /** conexion web socket */
-      let io = require('socket.io')(http, {
-          cors: {
-              origin: "*",
-              methods: ['GET', 'POST'],
-              credentials: true
-          }
-      });
-      io.on('connection', (socket: any) => {
-          socket.on('set-name', (nickname) => {
-              socket.nickname = nickname;
-              socket.emit('users-changed', { user: nickname, event: 'joined' });    
+        io.on('connection', (socket: any) => {
+            socket.on('set-name', (nickname) => {
+                socket.nickname = nickname;
+                assistant.createSession({
+                    assistantId: 'a4f92871-728e-4422-bcb6-2db9f79b06e3'
+                }).then(res => {
+                    session_id = res.result.session_id;
+                    assistant.message({
+                        assistantId: 'a4f92871-728e-4422-bcb6-2db9f79b06e3',
+                        sessionId: session_id,
+                        }).then(res => {
+                            let respuesta = res.result.output.generic;
+                            respuesta.forEach(element => {
+                                socket.emit('listen-message', { message: element.text, user: socket.nickname, createdAt: new Date() });
+                            });
+                        }).catch(err => { });
+                }).catch(err => {
+                    console.log(err);
+                });
           });
           let mensaje: any;
           socket.on('send-message', (text: any) => {
@@ -63,28 +69,24 @@ createConnection()
                   message_type: 'text',
                   text: text
                   }
-                })
-                    .then(res => {
-                        let respuesta = res.result.output.generic;
-                        respuesta.forEach(element => {
-                        socket.emit('listen-message', { message: element.text, user: socket.nickname, createdAt: new Date() });    
-                        socket.emit('message', { message:  element.text, user: socket.nickname, createdAt: new Date() })   
+                }).then(res => {
+                    let respuesta = res.result.output.generic;
+                    respuesta.forEach(element => {
+                        socket.emit('listen-message', { message: element.text, user: socket.nickname, createdAt: new Date() });
+                        socket.emit('message', { message: element.text, user: socket.nickname, createdAt: new Date() })   
                     });
-                })
-                .catch(err => {
-                  console.log(err);
-                });
+                }).catch(err => { });
           });
-          socket.on('response-message', function () { 
-              
-          })
-            socket.on('disconnect', function(){
-                socket.emit('users-changed', {user: socket.nickname, event: 'left'});   
-              });
-        });
+          socket.on('disconnect', function () {
+            const deleteSession = assistant.deleteSession({
+                  assistantId: 'a4f92871-728e-4422-bcb6-2db9f79b06e3',
+                sessionId: session_id,
+            });
+          });
+      });
         
     /** Ruta para subir archivos */
     app.use('/uploads', express.static(path.resolve('uploads')));
 
   })
-  .catch((error) => console.log(error));
+    .catch((error) => console.log(error));
