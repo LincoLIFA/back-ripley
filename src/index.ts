@@ -4,7 +4,7 @@ import * as express from 'express';
 import * as bodyParser from 'body-parser';
 import * as helmet from 'helmet';
 import * as path from 'path';
-import { setEmitFlags } from 'typescript';
+
 
 //Connects to the Database -> then starts the express
 createConnection()
@@ -49,31 +49,31 @@ createConnection()
                     assistant.message({
                         assistantId: 'a4f92871-728e-4422-bcb6-2db9f79b06e3',
                         sessionId: session_id,
-                        }).then(res => {
-                            let respuesta = res.result.output.generic;
-                            respuesta.forEach(element => {
-                                socket.emit('listen-message', { message: element.text, user: socket.nickname, createdAt: new Date() });
-                            });
-                        }).catch(err => { });
+                    }).then(res => {
+                        let respuesta = res.result.output.generic;
+                        respuesta.forEach(element => {
+                            socket.emit('listen-message', { message: element.text, user: socket.nickname, createdAt: new Date() });
+                        });
+                    }).catch(err => { });
                 }).catch(err => {
                     console.log(err);
                 });
-          });
+            });
           let mensaje: any;
           socket.on('send-message', (text: any) => {
               mensaje = text;
-                assistant.message({
-                assistantId: 'a4f92871-728e-4422-bcb6-2db9f79b06e3',
-                sessionId: session_id,
-                input: {
-                  message_type: 'text',
-                  text: text
-                  }
+              assistant.message({
+                  assistantId: 'a4f92871-728e-4422-bcb6-2db9f79b06e3',
+                  sessionId: session_id,
+                  input: {
+                      message_type: 'text',
+                      text: text
+                    }
                 }).then(res => {
+                    console.log(res.result.output);
                     let respuesta = res.result.output.generic;
                     respuesta.forEach(element => {
-                        socket.emit('listen-message', { message: element.text, user: socket.nickname, createdAt: new Date() });
-                        socket.emit('message', { message: element.text, user: socket.nickname, createdAt: new Date() })   
+                        socket.emit('listen-message', { message: element.text, user: socket.nickname, createdAt: new Date() }); 
                     });
                 }).catch(err => { });
           });
